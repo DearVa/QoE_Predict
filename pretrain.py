@@ -1,6 +1,7 @@
 import os
 from typing import List
 
+import pandas as pd
 from matplotlib import pyplot as plt
 
 
@@ -57,7 +58,8 @@ class PlaybackInfo:
                 self.resolution = i
                 break
         self.buf_health = reader.read_float()
-        self.buf_progress = reader.read_float()
+        buf_progress = reader.read_str()
+        self.buf_progress = 0 if buf_progress == 'null' else float(buf_progress)
         self.buf_valid = reader.read_str() == 'true'
 
     def get_state(self):
@@ -65,7 +67,7 @@ class PlaybackInfo:
         获取状态，因为event的最后一位是“收集数据”，所以忽略
         :return: -1：无状态 0：缓冲 1：暂停 2：播放
         """
-        for i in range(4):
+        for i in range(3):
             if self.event[i]:
                 return i
         return -1
@@ -136,12 +138,23 @@ class DataPack:
         plt.scatter(x=range(len(datas)), y=datas, s=1)
         plt.title(title, y=0.5, loc='right')
 
-    def show_plt(self):
-        i = 1
-        for k, v in self.dict.items():
-            self.show_plt_internal(i, v, k)
-            i += 1
+    def show_plt(self, title):
+        for i, (k, v) in enumerate(self.dict.items()):
+            self.show_plt_internal(i + 1, v, k)
+            if i == 0:
+                plt.title(title, y=1)
         plt.show()
+
+    def save_fig(self, save_path):
+        for i, (k, v) in enumerate(self.dict.items()):
+            self.show_plt_internal(i + 1, v, k)
+            if i == 0:
+                plt.title(os.path.split(save_path)[1][:-4], y=1)
+        plt.savefig(save_path)
+        plt.show()
+
+    def save(self, save_path):
+        pd.DataFrame(self.dict).to_csv(save_path)
 
 
 class TrainData1:
@@ -169,14 +182,24 @@ class TrainData1:
         plt.show()
 
 
-for r, d, files in os.walk('./data/A/MERGED_FILES'):
-    for file in files:
-        if file.endswith('txt'):
-            with open(file) as f:
+path = './data/A/MERGED_FILES'
+for r, d, file_names in os.walk(path):
+    for file_name in file_names:
+        file_path = os.path.join(path, file_name)
+        if os.path.exists(file_path[:-3] + 'csv'):
+            continue
+        if file_name.endswith('txt'):
+            with open(file_path) as f:
                 datas = []
+                # try:
                 for line in f:
                     if len(line) > 10:  # 排除空行
                         datas.append(Data(line))
 
                 train_data = DataPack(datas)
-                train_data.show_plt()
+                train_data.save_fig(file_path[:-3] + 'jpg')
+                train_data.save(file_path[:-3] + 'csv')
+                # except:
+                #     print('error: ' + file_name)
+
+print('fin')

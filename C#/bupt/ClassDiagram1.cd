@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Bupt.ChunkDetection">
+    <Position X="3.75" Y="1.75" Width="4.25" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="Bupt.ChunkDetection.GetRequest">
+        <TypeIdentifier>
+          <NewMemberFileName>ChunkDetection.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAA=</HashCode>
+      <FileName>ChunkDetection.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Cascadia Code" Size="9" />
+</ClassDiagram>
