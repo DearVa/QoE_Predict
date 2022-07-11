@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Net;
 using PacketDotNet;
 using SharpPcap;
@@ -14,6 +15,10 @@ public static class ChunkDetection {
 	/// 代表一个GET请求
 	/// </summary>
 	public class GetRequest {
+		/// <summary>
+		/// 排序
+		/// </summary>
+		public int Index { get; set; }
 		/// <summary>
 		/// 请求的目标地址
 		/// </summary>
@@ -39,6 +44,8 @@ public static class ChunkDetection {
 
 		public int TotalSize { get; set; }
 
+		public double AvgPackageSize => (double)TotalSize / PackageCount;
+
 		public GetRequest(IPAddress dst, PosixTimeval downStart, ProtocolType protocolType) {
 			Dst = dst;
 			DownStart = downStart;
@@ -46,15 +53,14 @@ public static class ChunkDetection {
 		}
 	}
 
-	private static void WriteRequestsToCsv(IReadOnlyList<GetRequest> requests, string savePath) {
+	private static void WriteRequestsToCsv(IReadOnlyCollection<GetRequest> requests, string savePath) {
 		if (requests.Count == 0) {
 			return;
 		}
-		using var sw = new StreamWriter(File.OpenWrite(savePath));
-		sw.WriteLine("index,pkg_count,avg_pkg_size,down_time");
-		for (var i = 0; i < requests.Count; i++) {
-			var req = requests[i];
-			sw.WriteLine($"{i},{req.PackageCount},{(double)req.TotalSize / req.PackageCount},{(req.DownEnd!.Date - req.DownStart.Date).TotalSeconds}");
+		using var sw = new StreamWriter(new FileStream(savePath, FileMode.Create));
+		sw.WriteLine("index,pkg_count,avg_pkg_size,down_time,down_start");
+		foreach (var req in requests) {
+			sw.WriteLine($"{req.Index},{req.PackageCount},{req.AvgPackageSize},{(req.DownEnd!.Date - req.DownStart.Date).TotalSeconds},{((DateTimeOffset)req.DownStart.Date).ToUnixTimeMilliseconds()}");
 		}
 	}
 
@@ -86,6 +92,7 @@ public static class ChunkDetection {
 				if (getRequests.TryGetValue(dst, out var getRequest)) {
 					// 说明这个曾经GET过，这是一个新的GET，那就把旧的保存下来
 					if (getRequest.TotalSize > 80 * 1024) {  // 只有当大于80KB才视为有效
+						getRequest.Index = allRequests.Count;
 						allRequests.Add(getRequest);
 					}
 				}
@@ -105,10 +112,16 @@ public static class ChunkDetection {
 		}
 
 		// 处理完成之后，要根据平均大小筛选音视频包
-		var avgSize = allRequests.Average(r => r.TotalSize);
-
 		var filePathWithoutExt = Path.Combine(Path.GetDirectoryName(pcapPath)!, Path.GetFileNameWithoutExtension(pcapPath));
-		WriteRequestsToCsv(allRequests.Where(r => r.TotalSize >= avgSize).ToImmutableArray(), filePathWithoutExt + "_videos.csv");
-		WriteRequestsToCsv(allRequests.Where(r => r.TotalSize < avgSize).ToImmutableArray(), filePathWithoutExt + "_audios.csv");
+		var videoRequests = new List<GetRequest>();
+		var audioRequests = new List<GetRequest>();
+		for (var i = 0; i < allRequests.Count; i += 10) {
+			var packages = allRequests.Skip(i).Take(10).ToImmutableArray();
+			var avgSize = packages.Average(p => p.AvgPackageSize);
+			videoRequests.AddRange(packages.Where(p => p.AvgPackageSize >= avgSize));
+			audioRequests.AddRange(packages.Where(p => p.AvgPackageSize < avgSize));
+		}
+		WriteRequestsToCsv(videoRequests, filePathWithoutExt + "_videos.csv");
+		WriteRequestsToCsv(audioRequests, filePathWithoutExt + "_audios.csv");
 	}
 }

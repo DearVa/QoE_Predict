@@ -1,1 +1,6 @@
 data
+bin
+obj
+.vs
+.idea
+__pycache__

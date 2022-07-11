@@ -3,4 +3,4 @@ dpkt~=1.9.7.2
 setuptools~=61.2.0
 cython~=0.29.30
 numpy~=1.22.3
-pandas~=1.4.3
+pandas
