@@ -4,3 +4,5 @@ setuptools~=61.2.0
 cython~=0.29.30
 numpy~=1.22.3
 pandas
+torch
+tensorboard_logger

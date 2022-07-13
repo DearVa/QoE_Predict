@@ -1,15 +1,18 @@
 import os
+from typing import List
 
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
+
 loaded_datas = {}
+"""用于存储已经加载过的数据，减少磁盘IO"""
 
 
 class MyDataset(Dataset):
-    def __init__(self, dir_path, csv_file_names, num_rows, x_time_steps, predict):
+    def __init__(self, dir_path: str, csv_file_names: List[str], num_rows: int, x_time_steps: int, predict: str):
         """
         初始化数据集
         :param dir_path: 所有csv文件的根目录
@@ -40,7 +43,7 @@ class MyDataset(Dataset):
         for i in range(len(array)):
             array[i] = (array[i] - min_val) / max_min_delta
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         # 例如x_time_steps为20，就说明每次抽20条数据来预测
         n = self.num_rows - self.x_time_steps  # 每个csv能抽的数据总数
         i = idx // n  # csv文件索引
@@ -76,11 +79,11 @@ class MyDataset(Dataset):
 
         if self.predict == 'state':
             y_values = np.zeros(4, dtype=np.float32)
-            label_index = int(data[j][6])
+            label_index = int(data[j][6] + 1)
             y_values[label_index] = 1
         elif self.predict == 'resolution':
-            y_values = np.zeros(8, dtype=np.float32)
-            label_index = int(data[j][7] + 1)
+            y_values = np.zeros(9, dtype=np.float32)
+            label_index = int(data[j][7])
             y_values[label_index] = 1
         else:
             y_values = np.array(data[j][8: 9], dtype=np.float32)
@@ -91,7 +94,7 @@ class MyDataset(Dataset):
         x_max = max(0, j)
         x_values = np.array(data[x_min: x_max, :6], dtype=np.float32).reshape((x_max - x_min, 6))
         if self.predict == 'state':
-            x_values = np.append(x_values, np.array(data[x_min: x_max, 6], dtype=np.float32).reshape(x_max - x_min, 1), axis=1)
+            x_values = np.append(x_values, np.array(data[x_min: x_max, 6] / 4, dtype=np.float32).reshape(x_max - x_min, 1), axis=1)
         elif self.predict == 'resolution':
             x_values = np.append(x_values, np.array(data[x_min: x_max, 7], dtype=np.float32).reshape(x_max - x_min, 1), axis=1)
         else:
@@ -100,6 +103,6 @@ class MyDataset(Dataset):
         # x_values = np.pad(x_values, ((self.x_time_steps - x_values.shape[0], 0), (0, 0)), 'constant', constant_values=0)
 
         if self.predict == 'buf_health':
-            return torch.from_numpy(x_values), torch.from_numpy(y_values)
+            return torch.from_numpy(x_values), torch.from_numpy(y_values), csv_file_name
         else:
-            return torch.from_numpy(x_values), torch.from_numpy(y_values), label_index
+            return torch.from_numpy(x_values), torch.from_numpy(y_values), label_index, csv_file_name

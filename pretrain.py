@@ -133,7 +133,7 @@ class ChunkPack:
                 time = min(down_start + down_time, (index + 1) * 5.0 + start_time)
                 part = min(1.0, (time - max(down_start, index * 5.0 + start_time)) / down_time)
                 self.dict["v_pkg_count"][index] += videos[i][1] * part
-                self.dict["v_pkg_bytes"][index] += videos[i][2] * part
+                self.dict["v_pkg_bytes"][index] += videos[i][2] * videos[i][1] * part
                 self.dict["v_down_time"][index] += down_time * part
                 index += 1
 
@@ -258,35 +258,60 @@ class TrainData1:
         plt.show()
 
 
-path = './data/A'
+# chunks = pd.read_csv(r"G:\Source\Python\AI\bupt\data\A\PCAP_FILES\baseline_Jan17_exp_28_videos.csv").iloc[:].values
+# start_time = chunks[0][4]
+# for chunk in chunks:
+#     down_start = (chunk[4] - start_time) / 1000
+#     xs = [down_start, down_start + chunk[3]]
+#     ys = [chunk[1], chunk[1]]
+#     plt.plot(xs, ys)
+# plt.grid(axis='x')
+# plt.xlim((0, 40))
+# plt.show()
 
-for r, d, file_names in os.walk(path):
-    for file_name in file_names:
-        file_path = os.path.join(path, 'MERGED_FILES', file_name)
-        if os.path.exists(file_path[:-3] + 'csv'):
-            continue
-        if file_name.endswith('txt'):
-            video_csv_path = os.path.join(path, 'PCAP_FILES', file_name[:-10] + 'videos.csv')
-            if not os.path.exists(video_csv_path):
-                continue
-            audio_csv_path = os.path.join(path, 'PCAP_FILES', file_name[:-10] + 'audios.csv')
-            if not os.path.exists(audio_csv_path):
-                continue
+# chunks = pd.read_csv(r"G:\Source\Python\AI\bupt\data\A\MERGED_FILES\baseline_Jan17_exp_30_merged.csv").iloc[:].values
+# start_time = chunks[1][1]
+# for i, chunk in enumerate(chunks):
+#     if i == 0:
+#         continue
+#     xs = [i * 5, i * 5 + chunk[4]]
+#     ys = [chunk[2], chunk[2]]
+#     plt.plot(xs, ys)
+# plt.grid(axis='x')
+# plt.xlim((0, 40))
+# plt.show()
 
-            chunk_pack = ChunkPack(video_csv_path, audio_csv_path)
+if __name__ == '__main__':
+    path = './data/A'
+    merged_path = os.path.join(path, 'MERGED_FILES')
 
-            with open(file_path) as f:
-                datas = []
-                try:
-                    for line in f:
-                        if len(line) > 10:  # 排除空行
-                            datas.append(Data(line))
+    for r, d, file_names in os.walk(merged_path):
+        for file_name in file_names:
+            file_path = os.path.join(merged_path, file_name)
+            # if os.path.exists(file_path[:-3] + 'csv'):
+            #     continue
+            if file_name.endswith('txt'):
+                video_csv_path = os.path.join(path, 'PCAP_FILES', file_name[:-10] + 'videos.csv')
+                if not os.path.exists(video_csv_path):
+                    continue
+                audio_csv_path = os.path.join(path, 'PCAP_FILES', file_name[:-10] + 'audios.csv')
+                if not os.path.exists(audio_csv_path):
+                    continue
 
-                    train_data = DataPack(datas, chunk_pack)
-                    # train_data.save_fig(file_path[:-3] + 'jpg')
-                    train_data.save(file_path[:-3] + 'csv')
-                    print(file_name)
-                except:
-                    print('error: ' + file_name)
+                chunk_pack = ChunkPack(video_csv_path, audio_csv_path)
 
-print('fin')
+                with open(file_path) as f:
+                    datas = []
+                    try:
+                        for line in f:
+                            if len(line) > 10:  # 排除空行
+                                datas.append(Data(line))
+
+                        train_data = DataPack(datas, chunk_pack)
+                        # train_data.save_fig(file_path[:-3] + 'jpg')
+                        train_data.save(file_path[:-3] + 'csv')
+                        print(file_name)
+                    except:
+                        print('error: ' + file_name)
+
+    print('fin')
