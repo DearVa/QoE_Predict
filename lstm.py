@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class Lstm(nn.Module):
-    def __init__(self, hidden_size, num_layers, batch_size, y_time_steps):
+    def __init__(self, hidden_size: int, num_layers: int, batch_size: int, y_time_steps: int):
         super(Lstm, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -11,8 +11,9 @@ class Lstm(nn.Module):
         self.lstm = nn.LSTM(input_size=7, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
         # 注意这里指定batch_first为True
         # 设置了两个线性层
-        self.linear1 = nn.Linear(in_features=hidden_size, out_features=int(hidden_size / 2))
-        self.linear2 = nn.Linear(in_features=int(hidden_size / 2), out_features=y_time_steps)
+        self.linear = nn.Linear(in_features=hidden_size, out_features=y_time_steps)
+        # self.linear1 = nn.Linear(in_features=hidden_size, out_features=hidden_size // 2)
+        # self.linear2 = nn.Linear(in_features=hidden_size // 2, out_features=y_time_steps)
         self.batch_size = batch_size
         self.y_time_steps = y_time_steps
 
@@ -25,8 +26,9 @@ class Lstm(nn.Module):
         h_0 = torch.randn(self.num_layers, self.batch_size, self.hidden_size).cuda()
         c_0 = torch.randn(self.num_layers, self.batch_size, self.hidden_size).cuda()
         out, _ = self.lstm(x, (h_0, c_0))
-        out = self.linear1(out)
-        out = self.linear2(out)
+        out = self.linear(out)
+        # out = self.linear1(out)
+        # out = self.linear2(out)
         # LSTM的最终的输出是y_time_steps个
         # out的size是 batch_size * x_time_steps * hidden_size
         # h和c的size是(num_directions * num_layers, batch_size, hidden_size)
