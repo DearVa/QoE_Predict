@@ -1,4 +1,3 @@
-# 准备好数据
 import datetime
 import os
 import random
@@ -29,7 +28,7 @@ num_rows = 121
 
 # 用6期x数据预测1期y数据
 x_time_steps = 6
-predict = 'state'  # state, resolution, buf_health
+predict = 'buf_health'  # state, resolution, buf_health
 
 hidden_size = 64
 num_layers = 5
@@ -41,7 +40,7 @@ use_tensorboard = False
 
 base_path = r'G:\Source\Python\AI\bupt\data\A'
 
-train_name = 'r_full_hs64_nl5_bs50_e100_lr1e-4_ss1000_g0.8_shu'
+train_name = 'bf_full_hs64_nl5_bs50_e100_lr1e-4_ss1000_g0.8_shu'
 
 def check_csv(csv_file_name: str):
     if not csv_file_name.endswith('.csv'):
@@ -115,7 +114,7 @@ def evaluate_loss(loader, show_plt=False):
     :return:
     """
     loss_for_all_batch = []
-    r2_loss_for_all_batch = []
+    # r2_loss_for_all_batch = []
     for i, (x, y, f) in enumerate(loader):
         input_x, true_y = x.float().cuda(), y.float().cuda()
         with torch.no_grad():
@@ -128,14 +127,15 @@ def evaluate_loss(loader, show_plt=False):
                 plt.legend()
                 plt.show()
             loss_for_all_batch.append(loss_fn(pre_y, true_y).cpu())
-            r2_loss_for_all_batch.append(r2_loss(pre_y, true_y).cpu())
-    return np.mean(loss_for_all_batch), np.mean(r2_loss_for_all_batch)  # 用所有batch loss的均值代表该数据集上的总体loss水平
+            # r2_loss_for_all_batch.append(r2_loss(pre_y, true_y).cpu())
+    return np.mean(loss_for_all_batch)  # , np.mean(r2_loss_for_all_batch)  # 用所有batch loss的均值代表该数据集上的总体loss水平
 
 
 def evaluate_accuracy(loader, show_plt=False):
     """
     计算准确率
     :param loader:
+    :param show_plt: 显示图像
     :return:
     """
     correct_count = 0
@@ -194,7 +194,7 @@ def train():
             x, y = data[0], data[1]
             # if predict != 'buf_health':
             #     l = data[2]
-            input_x, true_y = x.float().cuda(), y.long().squeeze().cuda()
+            input_x, true_y = x.float().cuda(), y.long().squeeze().cuda() if predict != 'buf_health' else y.float().cuda()
             pre_y = model.forward(input_x)
             loss = loss_fn(pre_y, true_y)
             if batch_index == 0:
@@ -210,14 +210,14 @@ def train():
         if it % 2 == 1:
             if predict == 'buf_health':
                 # loss
-                loss, r2 = evaluate_loss(val_loader)
+                loss = evaluate_loss(val_loader)
                 if loss < best_loss:
-                    print('epoch: {} loss: {}↓ r2: {}'.format(it + 1, loss, r2))
+                    print('epoch: {} loss: {}↓'.format(it + 1, loss))
                     best_epoch = it + 1
                     best_loss = loss
                     torch.save(model.state_dict(), save_dir)
                 else:
-                    print('epoch: {} loss: {} r2: {}'.format(it + 1, loss, r2))
+                    print('epoch: {} loss: {}'.format(it + 1, loss))
 
                 if use_tensorboard:
                     log_value('loss', loss, it)

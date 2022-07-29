@@ -281,7 +281,7 @@ class TrainData1:
 # plt.xlim((0, 40))
 # plt.show()
 
-if __name__ == '__main__':
+def run():
     path = './data/A'
     merged_path = os.path.join(path, 'MERGED_FILES')
 
@@ -311,7 +311,11 @@ if __name__ == '__main__':
                         # train_data.save_fig(file_path[:-3] + 'jpg')
                         train_data.save(file_path[:-3] + 'csv')
                         print(file_name)
-                    except:
-                        print('error: ' + file_name)
+                    except Exception as e:
+                        print('error: ' + file_name + ' ' + str(e))
 
     print('fin')
+
+
+if __name__ == '__main__':
+    run()
